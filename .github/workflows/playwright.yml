@@ -27,12 +27,28 @@ jobs:
       run: npx playwright install --with-deps
 
     - name: Run Playwright Tests
-      run: npx playwright test
+      run: npx playwright test --project=chromium
 
-    - name: Upload Playwright Report Artifact
+    - name: Upload HTML Playwright Report Artifact
       uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
         name: playwright-report
         path: playwright-report/
+        retention-days: 30
+
+    - name: Upload JUnit Results Artifact
+      uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: junit-results
+        path: junit-results.xml
+        retention-days: 30
+
+    - name: Upload JSON Results Artifact
+      uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: json-results
+        path: json-results.json
         retention-days: 30

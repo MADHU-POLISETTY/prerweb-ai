@@ -1,0 +1,25 @@
+{
+  "testUsers": [
+    { "name": "Alice Smith", "email": "alice@prepwise-test.io", "goal": "Senior DevOps Engineer" },
+    { "name": "Bob Jones", "email": "bob@prepwise-test.io", "goal": "Cloud Infrastructure Architect" },
+    { "name": "Charlie Brown", "email": "charlie@prepwise-test.io", "goal": "Site Reliability Engineer" }
+  ],
+  "interviewDomains": [
+    { "domain": "AWS", "role": "AWS Cloud Engineer", "company": "Amazon", "difficulty": "Advanced" },
+    { "domain": "Docker", "role": "Containerization Specialist", "company": "Docker", "difficulty": "Intermediate" },
+    { "domain": "Kubernetes", "role": "K8s Architect", "company": "Google", "difficulty": "Advanced" },
+    { "domain": "Terraform", "role": "IaC Developer", "company": "HashiCorp", "difficulty": "Intermediate" }
+  ],
+  "resumeProfiles": [
+    {
+      "name": "Cloud DevOps Senior",
+      "text": "Senior Cloud Engineer skilled in AWS EC2, S3, VPC, Docker, Kubernetes, Terraform, Prometheus, and CI/CD pipelines.",
+      "jobDesc": "Looking for a Cloud Engineer proficient in Kubernetes, Terraform, and AWS IAM security."
+    },
+    {
+      "name": "Full Stack Engineer",
+      "text": "Full Stack Developer proficient in React, Node.js, Express, TypeScript, System Design, PostgreSQL, and Git.",
+      "jobDesc": "Seeking a Senior React/Node engineer with system design capabilities."
+    }
+  ]
+}
