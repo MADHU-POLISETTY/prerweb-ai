@@ -9,6 +9,7 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist",
     "test:domains": "tsx test-domains.ts",
+    "test:e2e": "playwright test",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
