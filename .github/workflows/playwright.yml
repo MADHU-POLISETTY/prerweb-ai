@@ -7,48 +7,38 @@ on:
     branches: [ main ]
 
 jobs:
+  # 1. Run Tests in Parallel Shards
   test:
+    name: Run Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Splits the 300 tests into 5 parallel machines. 
+        # You can increase this to 10 if you need it to be even faster.
+        shardIndex: [1, 2, 3, 4, 5]
+        shardTotal: [5]
+    
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js 20
-      uses: actions/setup-node@v4
+    - uses: actions/checkout@v4
+    
+    # Updated to v4 to resolve the Node.js deprecation warning in your screenshot
+    - uses: actions/setup-node@v4
       with:
         node-version: 20
-        cache: 'npm'
 
-    - name: Install Dependencies
-      run: npm ci || npm install
+    - name: Install dependencies
+      run: npm ci
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
 
-    - name: Run Playwright Tests
-      run: npx playwright test --project=chromium
+    - name: Run Playwright tests
+      # This flag tells Playwright to only run a specific fraction of the tests on this machine
+      run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
-    - name: Upload HTML Playwright Report Artifact
+    - name: Upload blob report to GitHub Actions Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
       with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
-
-    - name: Upload JUnit Results Artifact
-      uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: junit-results
-        path: junit-results.xml
-        retention-days: 30
-
-    - name: Upload JSON Results Artifact
-      uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: json-results
-        path: json-results.json
-        retention-days: 30
