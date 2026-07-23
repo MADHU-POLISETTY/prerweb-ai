@@ -1,4 +1,4 @@
-name: Selenium E2E Tests
+name: Comprehensive E2E Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  selenium-test:
+  comprehensive-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,21 +31,21 @@ jobs:
 
     - name: Install Python Dependencies
       run: |
-        pip install selenium openpyxl requests
+        pip install -r requirements.txt
 
     - name: Start Express Server in Background
       run: |
         npm run dev &
         sleep 5
 
-    - name: Run Selenium E2E Tests
+    - name: Run Comprehensive E2E Tests
       run: |
-        npm run test:selenium
+        npm run test:comprehensive
 
     - name: Upload Excel Test Report Artifact
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: selenium-e2e-excel-report
-        path: E2E_Test_Report_PrepWise_AI_*.xlsx
+        name: comprehensive-e2e-excel-report
+        path: Comprehensive_E2E_Report_PrepWise_AI_*.xlsx
         retention-days: 30

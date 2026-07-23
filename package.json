@@ -11,6 +11,7 @@
     "test:domains": "tsx test-domains.ts",
     "test:e2e": "playwright test",
     "test:selenium": "python selenium_e2e_runner.py",
+    "test:comprehensive": "python comprehensive_test_runner.py",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
