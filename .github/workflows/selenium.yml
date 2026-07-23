@@ -7,15 +7,39 @@ on:
     branches: [ main ]
 
 jobs:
-  # 1. Selenium website E2E testing job
-  selenium-test:
-    name: Selenium - Website Testing
+  # Parallel test runs using a matrix strategy to group them visually under one node in the workflow UI
+  run-tests:
+    name: ${{ matrix.job.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - name: "Selenium - Website Testing"
+            engine: "selenium"
+            setup-node: true
+          - name: "Appium - Android Tests"
+            engine: "appium"
+            setup-node: false
+          - name: "Unit Tests - API (300)"
+            engine: "unit"
+            setup-node: true
+          - name: "Validation Tests (300)"
+            engine: "validation"
+            setup-node: true
+          - name: "Deployment Status (300)"
+            engine: "deployment"
+            setup-node: false
+          - name: "Load Testing - Performance"
+            engine: "load"
+            setup-node: true
+
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
     - name: Setup Node.js 20
+      if: ${{ matrix.job.setup-node }}
       uses: actions/setup-node@v4
       with:
         node-version: 20
@@ -26,188 +50,33 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install Dependencies
+    - name: Install Node & Python Dependencies
+      if: ${{ matrix.job.setup-node }}
       run: |
         npm ci || npm install
         pip install -r requirements.txt
 
-    - name: Run Selenium Website Tests
-      run: |
-        python comprehensive_test_runner.py --engine selenium
-
-    - name: Upload Selenium JSON results
-      uses: actions/upload-artifact@v4
-      with:
-        name: results_selenium
-        path: results_selenium.json
-        retention-days: 1
-
-  # 2. Appium Android testing job
-  appium-test:
-    name: Appium - Android Tests
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Dependencies
+    - name: Install Python Dependencies
+      if: ${{ !matrix.job.setup-node }}
       run: |
         pip install -r requirements.txt
 
-    - name: Run Appium Android Tests
+    - name: Run Test Engine
       run: |
-        python comprehensive_test_runner.py --engine appium
+        python comprehensive_test_runner.py --engine ${{ matrix.job.engine }}
 
-    - name: Upload Appium JSON results
+    - name: Upload JSON results
       uses: actions/upload-artifact@v4
       with:
-        name: results_appium
-        path: results_appium.json
-        retention-days: 1
-
-  # 3. Unit Tests API job
-  unit-test:
-    name: Unit Tests - API (300)
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Dependencies
-      run: |
-        npm ci || npm install
-        pip install -r requirements.txt
-
-    - name: Run Unit API Tests
-      run: |
-        python comprehensive_test_runner.py --engine unit
-
-    - name: Upload Unit JSON results
-      uses: actions/upload-artifact@v4
-      with:
-        name: results_unit
-        path: results_unit.json
-        retention-days: 1
-
-  # 4. Form input validation job
-  validation-test:
-    name: Validation Tests (300)
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Dependencies
-      run: |
-        npm ci || npm install
-        pip install -r requirements.txt
-
-    - name: Run Validation Tests
-      run: |
-        python comprehensive_test_runner.py --engine validation
-
-    - name: Upload Validation JSON results
-      uses: actions/upload-artifact@v4
-      with:
-        name: results_validation
-        path: results_validation.json
-        retention-days: 1
-
-  # 5. Deployment status validation job
-  deployment-test:
-    name: Deployment Status (300)
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Dependencies
-      run: |
-        pip install -r requirements.txt
-
-    - name: Run Deployment Checks
-      run: |
-        python comprehensive_test_runner.py --engine deployment
-
-    - name: Upload Deployment JSON results
-      uses: actions/upload-artifact@v4
-      with:
-        name: results_deployment
-        path: results_deployment.json
-        retention-days: 1
-
-  # 6. Load testing performance job
-  load-test:
-    name: Load Testing - Performance
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Dependencies
-      run: |
-        npm ci || npm install
-        pip install -r requirements.txt
-
-    - name: Run Load Testing
-      run: |
-        python comprehensive_test_runner.py --engine load
-
-    - name: Upload Load JSON results
-      uses: actions/upload-artifact@v4
-      with:
-        name: results_load
-        path: results_load.json
+        name: results_${{ matrix.job.engine }}
+        path: results_${{ matrix.job.engine }}.json
         retention-days: 1
 
   # 7. Consolidation and master report compilation job
   compile-report:
     name: Compile Master Report (300)
     runs-on: ubuntu-latest
-    needs: [selenium-test, appium-test, unit-test, validation-test, deployment-test, load-test]
+    needs: [run-tests]
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
