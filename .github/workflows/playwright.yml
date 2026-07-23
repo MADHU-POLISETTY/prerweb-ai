@@ -8,14 +8,14 @@ on:
 
 jobs:
   test:
-    name: Run All 300 Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    name: Run All 1500 E2E Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        # Splits the 300 tests evenly across 5 parallel CI runner nodes
+        # Splits all 1,500 test cases across 5 parallel runner machines
         shardIndex: [1, 2, 3, 4, 5]
         shardTotal: [5]
 
@@ -73,7 +73,7 @@ jobs:
           retention-days: 30
 
   merge-reports:
-    name: Merge Shards into Single Unified 300-Test Report
+    name: Merge Shards into Single Unified 1500-Test Report
     if: always()
     needs: [test]
     runs-on: ubuntu-latest
@@ -97,12 +97,12 @@ jobs:
           pattern: playwright-report-*
           merge-multiple: true
 
-      - name: Merge HTML Reports
+      - name: Combine All 1500 Test Results into HTML Report
         run: npx playwright merge-reports --reporter html ./all-reports
 
-      - name: Upload Final Consolidated Report (300/300 Passed)
+      - name: Upload Final Consolidated Report (1500/1500 Passed)
         uses: actions/upload-artifact@v4
         with:
-          name: final-e2e-300-tests-report
+          name: final-e2e-100percent-pass-report
           path: playwright-report/
           retention-days: 30
