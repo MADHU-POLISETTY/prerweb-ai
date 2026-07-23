@@ -1,0 +1,52 @@
+name: Selenium E2E Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  selenium-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Node Dependencies
+      run: |
+        npm ci || npm install
+
+    - name: Install Python Dependencies
+      run: |
+        pip install selenium openpyxl requests
+
+    - name: Start Express Server in Background
+      run: |
+        npm run dev &
+        sleep 5
+
+    - name: Run Selenium E2E Tests
+      run: |
+        npm run test:selenium
+
+    - name: Upload Excel Test Report Artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: selenium-e2e-excel-report
+        path: E2E_Test_Report_PrepWise_AI_*.xlsx
+        retention-days: 30
