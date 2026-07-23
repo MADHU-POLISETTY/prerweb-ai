@@ -22,7 +22,7 @@ except ImportError:
     SELENIUM_AVAILABLE = False
 
 PORT = 3000
-BASE_URL = f"http://localhost:{PORT}"
+BASE_URL = f"http://127.0.0.1:{PORT}"
 
 # Define the 300 E2E Test Cases Catalog (50 cases * 6 modules = 300 cases)
 TEST_CASES_SEL = []
