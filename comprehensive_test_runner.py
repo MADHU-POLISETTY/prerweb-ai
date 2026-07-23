@@ -514,10 +514,20 @@ def main():
                 ["npm", "run", "dev"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True
             )
-            time.sleep(2)
+            time.sleep(3)
             is_up = wait_for_server(BASE_URL, timeout=15)
             if not is_up:
                 print("Server failed to initialize.")
+                try:
+                    # Non-blocking poll for process output
+                    print("Checking server process logs...")
+                    stdout, stderr = server_process.communicate(timeout=2)
+                    print("--- SERVER STDOUT ---")
+                    print(stdout)
+                    print("--- SERVER STDERR ---")
+                    print(stderr)
+                except Exception as ex:
+                    print("Error retrieving server logs:", ex)
                 if server_process:
                     server_process.terminate()
                 sys.exit(1)
