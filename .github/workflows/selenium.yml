@@ -7,9 +7,10 @@ on:
     branches: [ main ]
 
 jobs:
-  comprehensive-test:
+  # 1. Selenium website E2E testing job
+  selenium-test:
+    name: Selenium - Website Testing
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -25,26 +26,213 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install Node Dependencies
+    - name: Install Dependencies
       run: |
         npm ci || npm install
+        pip install -r requirements.txt
 
-    - name: Install Python Dependencies
+    - name: Run Selenium Website Tests
+      run: |
+        python comprehensive_test_runner.py --engine selenium
+
+    - name: Upload Selenium JSON results
+      uses: actions/upload-artifact@v4
+      with:
+        name: results_selenium
+        path: results_selenium.json
+        retention-days: 1
+
+  # 2. Appium Android testing job
+  appium-test:
+    name: Appium - Android Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
       run: |
         pip install -r requirements.txt
 
-    - name: Start Express Server in Background
+    - name: Run Appium Android Tests
       run: |
-        npm run dev &
-        sleep 5
+        python comprehensive_test_runner.py --engine appium
 
-    - name: Run Comprehensive E2E Tests
-      run: |
-        npm run test:comprehensive
-
-    - name: Upload Excel Test Report Artifact
+    - name: Upload Appium JSON results
       uses: actions/upload-artifact@v4
-      if: always()
+      with:
+        name: results_appium
+        path: results_appium.json
+        retention-days: 1
+
+  # 3. Unit Tests API job
+  unit-test:
+    name: Unit Tests - API (300)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        npm ci || npm install
+        pip install -r requirements.txt
+
+    - name: Run Unit API Tests
+      run: |
+        python comprehensive_test_runner.py --engine unit
+
+    - name: Upload Unit JSON results
+      uses: actions/upload-artifact@v4
+      with:
+        name: results_unit
+        path: results_unit.json
+        retention-days: 1
+
+  # 4. Form input validation job
+  validation-test:
+    name: Validation Tests (300)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        npm ci || npm install
+        pip install -r requirements.txt
+
+    - name: Run Validation Tests
+      run: |
+        python comprehensive_test_runner.py --engine validation
+
+    - name: Upload Validation JSON results
+      uses: actions/upload-artifact@v4
+      with:
+        name: results_validation
+        path: results_validation.json
+        retention-days: 1
+
+  # 5. Deployment status validation job
+  deployment-test:
+    name: Deployment Status (300)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Deployment Checks
+      run: |
+        python comprehensive_test_runner.py --engine deployment
+
+    - name: Upload Deployment JSON results
+      uses: actions/upload-artifact@v4
+      with:
+        name: results_deployment
+        path: results_deployment.json
+        retention-days: 1
+
+  # 6. Load testing performance job
+  load-test:
+    name: Load Testing - Performance
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        npm ci || npm install
+        pip install -r requirements.txt
+
+    - name: Run Load Testing
+      run: |
+        python comprehensive_test_runner.py --engine load
+
+    - name: Upload Load JSON results
+      uses: actions/upload-artifact@v4
+      with:
+        name: results_load
+        path: results_load.json
+        retention-days: 1
+
+  # 7. Consolidation and master report compilation job
+  compile-report:
+    name: Compile Master Report (300)
+    runs-on: ubuntu-latest
+    needs: [selenium-test, appium-test, unit-test, validation-test, deployment-test, load-test]
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        pip install openpyxl
+
+    - name: Download JSON results from upstream jobs
+      uses: actions/download-artifact@v4
+      with:
+        pattern: results_*
+        merge-multiple: true
+
+    - name: Compile Consolidated Master Report
+      run: |
+        python comprehensive_test_runner.py --compile
+
+    - name: Upload Master Excel Test Report
+      uses: actions/upload-artifact@v4
       with:
         name: comprehensive-e2e-excel-report
         path: Comprehensive_E2E_Report_PrepWise_AI_*.xlsx
