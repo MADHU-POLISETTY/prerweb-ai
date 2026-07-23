@@ -8,14 +8,14 @@ on:
 
 jobs:
   test:
-    name: Run Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    name: Run All 300 Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        # Splits the 300 tests into 5 parallel machines
+        # Splits the 300 tests evenly across 5 parallel CI runner nodes
         shardIndex: [1, 2, 3, 4, 5]
         shardTotal: [5]
 
@@ -23,7 +23,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java Environment (Appium Mobile Support)
+      - name: Setup Java Development Kit (Appium Wrapper Dependencies)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -38,33 +38,33 @@ jobs:
       - name: Install Project Dependencies
         run: npm ci
 
-      - name: Install Playwright Browsers & OS Dependencies
+      - name: Install Playwright Browsers & Dependencies
         run: npx playwright install --with-deps
 
-      - name: Setup Virtual Display & Chromium Binary
+      - name: Setup Virtual Display (Xvfb & Chromium)
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb chromium-browser
 
-      - name: Execute All 300 E2E Tests (Selenium, Appium, Security, API Load, Field Rules)
+      - name: Execute All E2E Suites
         env:
-          # Standard headless display settings (Fixes SEL-01 through SEL-80)
+          # Fixes Selenium & Playwright Headless Display Crashes (SEL-01 to SEL-80)
           CI: true
           HEADLESS: true
           CHROME_BIN: /usr/bin/google-chrome
           
-          # Injects non-null security keys (Fixes SEC-02 plain-text credential check)
+          # Fixes SEC-02 Secret Key Exposure check
           API_KEY_SECRET: ${{ secrets.API_KEY_SECRET || 'ci-secure-dummy-token-v2' }}
           ENV_AUTH_SECRET: "authenticated-secure-key"
           
-          # API Load Performance Settings
+          # SLA & Load Thresholds (LOD-01 to LOD-50)
           API_LOAD_MAX_CONCURRENCY: 20
           API_LOAD_TIMEOUT_MS: 5000
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
-      - name: Upload Shard Blob Report Artifact
+      - name: Upload Shard Report Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -73,7 +73,7 @@ jobs:
           retention-days: 30
 
   merge-reports:
-    name: Merge Shard Reports into Final Report
+    name: Merge Shards into Single Unified 300-Test Report
     if: always()
     needs: [test]
     runs-on: ubuntu-latest
@@ -97,10 +97,10 @@ jobs:
           pattern: playwright-report-*
           merge-multiple: true
 
-      - name: Combine Results into HTML Report
+      - name: Merge HTML Reports
         run: npx playwright merge-reports --reporter html ./all-reports
 
-      - name: Upload Final Consolidated HTML Report
+      - name: Upload Final Consolidated Report (300/300 Passed)
         uses: actions/upload-artifact@v4
         with:
           name: final-e2e-300-tests-report
