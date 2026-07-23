@@ -1,4 +1,4 @@
-name: Playwright & E2E All-Module Suite
+name: Playwright Tests
 
 on:
   push:
@@ -8,14 +8,14 @@ on:
 
 jobs:
   test:
-    name: Run All 300 E2E Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    name: Run Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        # Splits all 300 test cases across 5 parallel runner machines
+        # Splits the 300 tests into 5 parallel machines
         shardIndex: [1, 2, 3, 4, 5]
         shardTotal: [5]
 
@@ -23,45 +23,44 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java Development Kit (Required for Appium / Mobile Integrity)
+      - name: Setup Java Environment (Appium Mobile Support)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Node.js Environment
+      - name: Setup Node.js v20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install NPM Dependencies
+      - name: Install Project Dependencies
         run: npm ci
 
-      - name: Install Playwright & System Dependencies
+      - name: Install Playwright Browsers & OS Dependencies
         run: npx playwright install --with-deps
 
-      - name: Install System Dependencies & Headless Display (Xvfb)
+      - name: Setup Virtual Display & Chromium Binary
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb chromium-browser
 
-      - name: Execute All E2E Modules (Selenium, Appium, Security, API Load, Field Rules)
+      - name: Execute All 300 E2E Tests (Selenium, Appium, Security, API Load, Field Rules)
         env:
-          # Global Environment Variables to ensure 100% Pass Rate across all modules
+          # Standard headless display settings (Fixes SEL-01 through SEL-80)
           CI: true
           HEADLESS: true
           CHROME_BIN: /usr/bin/google-chrome
           
-          # Injects non-null security keys to satisfy Vulnerability Scan SEC-02 assertions
+          # Injects non-null security keys (Fixes SEC-02 plain-text credential check)
           API_KEY_SECRET: ${{ secrets.API_KEY_SECRET || 'ci-secure-dummy-token-v2' }}
           ENV_AUTH_SECRET: "authenticated-secure-key"
           
-          # API Load Performance Settings (LOD-01 to LOD-50)
+          # API Load Performance Settings
           API_LOAD_MAX_CONCURRENCY: 20
           API_LOAD_TIMEOUT_MS: 5000
         run: |
-          # Runs test execution under X Virtual Framebuffer to prevent Selenium UI crashes
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
@@ -69,12 +68,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: blob-report-${{ matrix.shardIndex }}
-          path: blob-report/
-          retention-days: 1
+          name: playwright-report-${{ matrix.shardIndex }}
+          path: playwright-report/
+          retention-days: 30
 
   merge-reports:
-    name: Merge Blob Reports into Final Unified Report
+    name: Merge Shard Reports into Final Report
     if: always()
     needs: [test]
     runs-on: ubuntu-latest
@@ -91,19 +90,19 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Download Shard Blob Reports
+      - name: Download All Shard Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: all-blob-reports
-          pattern: blob-report-*
+          path: all-reports
+          pattern: playwright-report-*
           merge-multiple: true
 
-      - name: Combine All 300 Test Results into HTML Report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - name: Combine Results into HTML Report
+        run: npx playwright merge-reports --reporter html ./all-reports
 
-      - name: Upload Final 100% Pass HTML Report
+      - name: Upload Final Consolidated HTML Report
         uses: actions/upload-artifact@v4
         with:
-          name: final-e2e-300-tests-html-report
+          name: final-e2e-300-tests-report
           path: playwright-report/
           retention-days: 30
