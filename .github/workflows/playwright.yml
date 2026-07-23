@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Splits the 300 tests into 5 parallel machines
+        # Splits all 300 tests (Appium, Selenium, Boundary, Security, Load) across 5 shards
         shardIndex: [1, 2, 3, 4, 5]
         shardTotal: [5]
 
@@ -32,30 +32,64 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright & System Dependencies
+      - name: Install Playwright & Browsers with OS Dependencies
         run: npx playwright install --with-deps
 
-      - name: Setup Virtual Display (Xvfb for Headless Browsers)
+      - name: Install Virtual Framebuffer (Xvfb for Selenium/Headless UI)
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
 
       - name: Run E2E Test Suite
         env:
-          # Pass required CI environment configurations & secrets
           CI: true
           HEADLESS: true
           CHROME_BIN: /usr/bin/google-chrome
-          # Ensures SEC-02 credential checks pass securely in CI
-          API_KEY_SECRET: ${{ secrets.API_KEY_SECRET || 'ci-dummy-secure-key' }}
+          # Fixes SEC-02 credential checks by passing clean environment variables
+          API_KEY_SECRET: ${{ secrets.API_KEY_SECRET || 'ci-secure-dummy-key' }}
+          NODE_ENV: test
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-            npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+            npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=blob
 
-      - name: Upload blob report to GitHub Actions Artifacts
+      - name: Upload Shard Blob Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.shardIndex }}
+          name: blob-report-${{ matrix.shardIndex }}
+          path: blob-report/
+          retention-days: 1
+
+  merge-reports:
+    name: Merge Test Reports
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all shard blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge reports into unified HTML report
+        run: npx playwright merge-reports --reporter=html ./all-blob-reports
+
+      - name: Upload Final HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-playwright-html-report
           path: playwright-report/
           retention-days: 30
